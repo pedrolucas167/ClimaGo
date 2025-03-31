@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplicativo de Clima</title>
+    <link rel="stylesheet" href="estilos.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="client.js"></script>
+    <script src="server.js"></script>
+</head>
+<body>
+    <div id="container">
+        <h1>Aplicativo de Clima</h1>
+        <input type="text" id="city" placeholder="Digite o nome da cidade">
+        <button onclick="getWeather()">Buscar</button>
+        <p id="loading" class="loading" style="display: none;">Carregando...</p>
+        <div id="weather"></div>
+    </div>
+    
+</body>
+</html>
