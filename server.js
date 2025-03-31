@@ -1,30 +1,46 @@
+require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
+const morgan = require('morgan');
 const app = express();
 
-const API_KEY = '9d28a700c32e8520fe80437e5ee16db8'; // Substitua pela sua chave da OpenWeatherMap
+const API_KEY = process.env.OPENWEATHER_API_KEY;
 
-app.use(express.json()); // Para parsing de JSON, caso precise no futuro
 
-app.get('/api/weather', async (req, res) => {
-    const city = req.query.city;
+app.use(morgan('dev')); // Loga as requisições HTTP
 
-    if (!city) {
-        return res.status(400).json({ error: 'Cidade não fornecida' });
-    }
+app.use(express.json()); // P
 
+// Função para buscar clima da cidade
+const getWeather = async (city) => {
     const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric&lang=pt`;
 
     try {
         const response = await axios.get(url);
-        res.json(response.data); // Envia os dados diretamente para o front-end
+        return response.data;
+    } catch (error) {
+        throw new Error(error.response ? error.response.data.message : 'Erro desconhecido');
+    }
+};
+
+app.get('/api/weather', async (req, res) => {
+    const city = req.query.city;
+
+ 
+    if (!city || city.trim() === '') {
+        return res.status(400).json({ error: 'Cidade não fornecida ou inválida' });
+    }
+
+    try {
+        const weatherData = await getWeather(city);
+        res.json(weatherData);
     } catch (error) {
         console.error('Erro na API:', error.message);
-        res.status(500).json({ error: 'Erro ao buscar dados do clima' });
+        res.status(500).json({ error: `Erro ao buscar dados do clima: ${error.message}` });
     }
 });
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
 });
