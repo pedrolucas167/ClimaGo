@@ -1,4 +1,7 @@
-:root {
+/* ===================
+   Root Theme Variables
+   =================== */
+   :root {
     --primary-color: #4361ee;
     --primary-hover: #3a56d4;
     --secondary-color: #7209b7;
@@ -6,14 +9,33 @@
     --container-bg: #ffffff;
     --text-color: #2b2d42;
     --text-light: #6c757d;
+    --text-on-primary: #ffffff;
+    --text-on-light-bg: #212529;
     --border-color: #e9ecef;
     --border-radius: 12px;
     --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition: background-color 0.25s ease, transform 0.2s ease, box-shadow 0.3s ease;
     --success-color: #4cc9f0;
     --error-color: #f72585;
 }
 
+/* ===================
+   Dark Mode Support
+   =================== */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background-color: #121212;
+        --container-bg: #1e1e2f;
+        --text-color: #f1f1f1;
+        --text-light: #aaa;
+        --border-color: #2a2a3d;
+        --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.6);
+    }
+}
+
+/* ===================
+   Base Styles
+   =================== */
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     text-align: center;
@@ -26,6 +48,9 @@ body {
     background-image: radial-gradient(circle at 10% 20%, rgba(67, 97, 238, 0.05) 0%, rgba(255, 255, 255, 0) 90%);
 }
 
+/* ===================
+   Container
+   =================== */
 #container {
     max-width: 480px;
     margin: 40px auto;
@@ -38,6 +63,9 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
+/* ===================
+   Typography
+   =================== */
 h1 {
     color: var(--primary-color);
     margin-bottom: 1.75rem;
@@ -51,10 +79,14 @@ h1 {
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
+/* ===================
+   Input Group
+   =================== */
 .input-group {
     display: flex;
     gap: 10px;
     margin-bottom: 1.5rem;
+    flex-wrap: wrap;
 }
 
 input {
@@ -68,9 +100,18 @@ input {
     background-color: rgba(255, 255, 255, 0.8);
 }
 
+input:hover {
+    background-color: rgba(255, 255, 255, 0.95);
+}
+
 input::placeholder {
     color: var(--text-light);
     opacity: 0.6;
+    transition: opacity 0.3s ease;
+}
+
+input:focus::placeholder {
+    opacity: 0.3;
 }
 
 input:focus {
@@ -80,11 +121,19 @@ input:focus {
     background-color: white;
 }
 
+input:invalid {
+    border-color: var(--error-color);
+    box-shadow: 0 0 0 2px rgba(247, 37, 133, 0.2);
+}
+
+/* ===================
+   Button
+   =================== */
 button {
     padding: 0.875rem 1.75rem;
     border: none;
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    color: white;
+    color: var(--text-on-primary);
     border-radius: var(--border-radius);
     cursor: pointer;
     font-size: 1rem;
@@ -106,6 +155,9 @@ button:active {
     box-shadow: 0 2px 4px rgba(67, 97, 238, 0.2);
 }
 
+/* ===================
+   Weather Section
+   =================== */
 #weather {
     margin-top: 2rem;
     padding: 1.75rem;
@@ -136,6 +188,7 @@ button:active {
     width: 60px;
     height: 60px;
     margin-right: 0.75rem;
+    will-change: transform;
 }
 
 .weather-info p {
@@ -149,6 +202,24 @@ button:active {
     font-weight: 500;
 }
 
+.weather-main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.temperature {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin: 0.5rem 0;
+}
+
+/* ===================
+   States and Feedback
+   =================== */
 .loading {
     font-size: 1rem;
     color: var(--primary-color);
@@ -174,39 +245,7 @@ button:active {
     gap: 0.5rem;
 }
 
-.temperature {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: var(--primary-color);
-    margin: 0.5rem 0;
-}
 
-.weather-main {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-/* Responsividade */
-@media (max-width: 480px) {
-    #container {
-        padding: 1.75rem;
-        margin: 1rem;
-        border-radius: 0;
-    }
-    
-    .input-group {
-        flex-direction: column;
-    }
-    
-    input, button {
-        width: 100%;
-    }
-}
-
-/* Animação de loading */
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
@@ -221,7 +260,6 @@ button:active {
     animation: spin 0.8s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;
 }
 
-/* Efeito de flutuação sutil */
 @keyframes float {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-5px); }
@@ -229,4 +267,25 @@ button:active {
 
 .weather-icon {
     animation: float 3s ease-in-out infinite;
+    will-change: transform;
+}
+
+/* ===================
+   Responsiveness
+   =================== */
+@media (max-width: 480px) {
+    #container {
+        padding: 1.75rem;
+        margin: 1rem;
+        border-radius: 0;
+    }
+
+    .input-group {
+        flex-direction: column;
+    }
+
+    input,
+    button {
+        width: 100%;
+    }
 }
