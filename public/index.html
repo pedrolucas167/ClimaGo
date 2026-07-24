@@ -8,36 +8,67 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="css/styles.css">
     <script src="js/client.js"></script>
 </head>
 <body>
-    <div id="container">
-        <h1>ClimaGo</h1>
-        
-        <div class="input-group">
-            <input type="text" id="city" placeholder="Digite o nome da cidade" onkeypress="handleKeyPress(event)">
-            <button onclick="getWeather()">Buscar</button>
-            <button onclick="getLocation()" class="geo-btn" title="Usar minha localização" aria-label="Usar minha localização" data-tooltip="Usar minha localização">📍</button>
-        </div>
-        
-        <div class="auto-update-toggle">
-            <label>
-                <input type="checkbox" id="autoUpdate" onchange="toggleAutoUpdate()">
-                Atualização automática (5 min)
-            </label>
-        </div>
-        
+    <div id="container" class="app-shell">
+        <header class="hero">
+            <div class="hero-copy">
+                <p class="eyebrow">Dashboard climático</p>
+                <h1>ClimaGo</h1>
+                <p class="hero-description">Clima em tempo real, previsão, qualidade do ar, índice UV e visão por hora em uma interface única.</p>
+            </div>
+            <div class="hero-badges">
+                <span class="hero-badge">Tempo real</span>
+                <span class="hero-badge">Previsão 5 dias</span>
+                <span class="hero-badge">Qualidade do ar</span>
+                <span class="hero-badge">Índice UV</span>
+            </div>
+        </header>
+
+        <section class="search-panel">
+            <div class="input-group">
+                <input type="text" id="city" placeholder="Digite o nome da cidade" onkeypress="handleKeyPress(event)">
+                <button onclick="getWeather()">Buscar</button>
+                <button onclick="getLocation()" class="geo-btn" title="Usar minha localização" aria-label="Usar minha localização" data-tooltip="Usar minha localização">📍</button>
+            </div>
+
+            <div class="auto-update-toggle">
+                <label>
+                    <input type="checkbox" id="autoUpdate" onchange="toggleAutoUpdate()">
+                    Atualização automática (5 min)
+                </label>
+            </div>
+        </section>
+
         <p id="loading" class="loading" style="display: none;">Carregando...</p>
-        
-        <div id="weather"></div>
-        
-        <div id="forecast" style="display: none;"></div>
-        
-        <div class="recent-searches">
-            <h3>Buscas Recentes</h3>
-            <div id="recentSearchesList"></div>
-        </div>
+
+        <main class="dashboard-grid">
+            <section class="dashboard-card dashboard-card--featured">
+                <div id="weather"></div>
+            </section>
+
+            <section class="dashboard-card dashboard-card--wide" id="forecast" style="display: none;"></section>
+
+            <section class="dashboard-card" id="air-quality" style="display: none;"></section>
+
+            <section class="dashboard-card" id="uv-index" style="display: none;"></section>
+
+            <section class="dashboard-card dashboard-card--wide" id="hourly-forecast" style="display: none;"></section>
+
+            <section class="dashboard-card dashboard-card--wide recent-searches">
+                <div class="panel-heading">
+                    <div>
+                        <p class="panel-kicker">Histórico</p>
+                        <h3>Buscas recentes</h3>
+                    </div>
+                    <p class="panel-note">Acesso rápido às últimas cidades consultadas</p>
+                </div>
+                <div id="recentSearchesList"></div>
+            </section>
+        </main>
     </div>
 </body>
 </html>

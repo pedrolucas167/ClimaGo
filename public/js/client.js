@@ -97,25 +97,30 @@ async function getWeatherByCoords(lat, lon) {
     const loadingElement = document.getElementById('loading');
     const weatherElement = document.getElementById('weather');
     const forecastElement = document.getElementById('forecast');
-    
+
     try {
         const response = await fetch(`/api/weather/coords?lat=${lat}&lon=${lon}`);
-        
+
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             const errorMsg = errorData.error || 'Erro ao buscar dados meteorológicos.';
             throw new Error(errorMsg);
         }
-        
+
         const data = await response.json();
         currentCity = data.name;
         currentWeatherData = data;
         document.getElementById('city').value = data.name;
         displayWeather(data);
         saveRecentSearch(data.name);
-        
-        await getForecast(data.name);
-        
+
+        await Promise.all([
+            getForecast(data.name),
+            getAirQuality(lat, lon),
+            getUVIndex(lat, lon),
+            getHourlyForecast(lat, lon)
+        ]);
+
     } catch (error) {
         console.error('Erro ao obter clima:', error);
         weatherElement.innerHTML = `
@@ -130,19 +135,73 @@ async function getWeatherByCoords(lat, lon) {
 
 async function getForecast(city) {
     const forecastElement = document.getElementById('forecast');
-    
+
     try {
         const response = await fetch(`/api/forecast?city=${encodeURIComponent(city)}`);
-        
+
         if (!response.ok) {
             throw new Error('Erro ao buscar previsão');
         }
-        
+
         const data = await response.json();
         displayForecast(data);
-        
+
     } catch (error) {
         console.error('Erro ao obter previsão:', error);
+    }
+}
+
+async function getAirQuality(lat, lon) {
+    const airQualityElement = document.getElementById('air-quality');
+
+    try {
+        const response = await fetch(`/api/air-pollution?lat=${lat}&lon=${lon}`);
+
+        if (!response.ok) {
+            throw new Error('Erro ao buscar qualidade do ar');
+        }
+
+        const data = await response.json();
+        displayAirQuality(data);
+
+    } catch (error) {
+        console.error('Erro ao obter qualidade do ar:', error);
+    }
+}
+
+async function getUVIndex(lat, lon) {
+    const uvElement = document.getElementById('uv-index');
+
+    try {
+        const response = await fetch(`/api/uv-index?lat=${lat}&lon=${lon}`);
+
+        if (!response.ok) {
+            throw new Error('Erro ao buscar índice UV');
+        }
+
+        const data = await response.json();
+        displayUVIndex(data);
+
+    } catch (error) {
+        console.error('Erro ao obter índice UV:', error);
+    }
+}
+
+async function getHourlyForecast(lat, lon) {
+    const hourlyElement = document.getElementById('hourly-forecast');
+
+    try {
+        const response = await fetch(`/api/onecall?lat=${lat}&lon=${lon}`);
+
+        if (!response.ok) {
+            throw new Error('Erro ao buscar previsão horária');
+        }
+
+        const data = await response.json();
+        displayHourlyForecast(data);
+
+    } catch (error) {
+        console.error('Erro ao obter previsão horária:', error);
     }
 }
 
@@ -188,10 +247,13 @@ async function getWeather(isAutoUpdate = false) {
     }
 
     loadingElement.style.display = 'block';
-    
+
     if (!isAutoUpdate) {
         weatherElement.innerHTML = '';
         forecastElement.style.display = 'none';
+        document.getElementById('air-quality').style.display = 'none';
+        document.getElementById('uv-index').style.display = 'none';
+        document.getElementById('hourly-forecast').style.display = 'none';
     }
 
     try {
@@ -207,17 +269,25 @@ async function getWeather(isAutoUpdate = false) {
         currentCity = city;
         currentWeatherData = data;
         displayWeather(data);
-        
+
         if (!isAutoUpdate) {
             saveRecentSearch(city);
             await getForecast(city);
-            
+
+            if (data.coord) {
+                await Promise.all([
+                    getAirQuality(data.coord.lat, data.coord.lon),
+                    getUVIndex(data.coord.lat, data.coord.lon),
+                    getHourlyForecast(data.coord.lat, data.coord.lon)
+                ]);
+            }
+
             const checkbox = document.getElementById('autoUpdate');
             if (checkbox.checked) {
                 startAutoUpdate();
             }
         }
-        
+
     } catch (error) {
         console.error('Erro ao obter clima:', error);
         weatherElement.innerHTML = `
@@ -236,25 +306,47 @@ function displayWeather(data) {
     const updateTime = new Date().toLocaleTimeString('pt-BR');
 
     const htmlContent = `
-        <div class="weather-main">
-            <h2>${name}, ${sys.country}</h2>
-            <div class="temperature-container">
-                <span class="temperature">${Math.round(main.temp)}°C</span>
+        <div class="weather-hero">
+            <div class="weather-heading">
+                <div>
+                    <p class="weather-kicker">Condição atual</p>
+                    <h2>${name}, ${sys.country}</h2>
+                </div>
+                <div class="weather-status">
+                    ${cached ? '<span class="cached-badge">Dados em cache</span>' : ''}
+                    <span class="weather-time">Atualizado às ${updateTime}</span>
+                </div>
+            </div>
+            <div class="weather-snapshot">
+                <div class="temperature-container">
+                    <span class="temperature">${Math.round(main.temp)}°C</span>
+                    <p class="weather-description">${weather[0].description}</p>
+                </div>
                 <img src="https://openweathermap.org/img/wn/${weather[0].icon}@2x.png"
                      alt="${weather[0].description}"
                      class="weather-icon">
             </div>
-            <p class="weather-description">${weather[0].description}</p>
-            ${cached ? '<span class="cached-badge">Dados em cache</span>' : ''}
         </div>
-        <div class="weather-details">
-            <p><strong>Sensação Térmica:</strong> ${Math.round(main.feels_like)}°C</p>
-            <p><strong>Umidade:</strong> ${main.humidity}%</p>
-            <p><strong>Pressão:</strong> ${main.pressure} hPa</p>
-            <p><strong>Vento:</strong> ${wind.speed} m/s</p>
+        <div class="weather-metrics">
+            <div class="metric-card">
+                <span class="metric-label">Sensação térmica</span>
+                <span class="metric-value">${Math.round(main.feels_like)}°C</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-label">Umidade</span>
+                <span class="metric-value">${main.humidity}%</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-label">Pressão</span>
+                <span class="metric-value">${main.pressure} hPa</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-label">Vento</span>
+                <span class="metric-value">${wind.speed} m/s</span>
+            </div>
         </div>
-        <div class="update-info">
-            <p>Última atualização: ${updateTime}</p>
+        <div class="update-info weather-footer">
+            <p>Atualização local: ${updateTime}</p>
         </div>
         <button onclick="getAIAdvice()" class="ai-btn">🤖 Obter Recomendações da IA</button>
         <div id="ai-advice" style="display: none;"></div>
@@ -312,6 +404,143 @@ async function getAIAdvice() {
     } finally {
         loadingElement.style.display = 'none';
     }
+}
+
+function displayAirQuality(data) {
+    const airQualityElement = document.getElementById('air-quality');
+
+    if (!data.list || data.list.length === 0) {
+        return;
+    }
+
+    const aqi = data.list[0].main.aqi;
+    const components = data.list[0].components;
+
+    const aqiLevels = {
+        1: { label: 'Bom', color: '#4fd1c5', description: 'Qualidade do ar satisfatória' },
+        2: { label: 'Moderado', color: '#f6e05e', description: 'Qualidade do ar aceitável' },
+        3: { label: 'Ruim para grupos sensíveis', color: '#ed8936', description: 'Pode afetar pessoas sensíveis' },
+        4: { label: 'Ruim', color: '#f56565', description: 'Pode afetar toda a população' },
+        5: { label: 'Muito Ruim', color: '#c53030', description: 'Alerta de saúde' }
+    };
+
+    const level = aqiLevels[aqi] || aqiLevels[1];
+
+    const htmlContent = `
+        <div class="air-quality-container">
+            <h3>🌬️ Qualidade do Ar</h3>
+            <div class="aqi-display">
+                <div class="aqi-badge" style="background-color: ${level.color}">
+                    <span class="aqi-value">${aqi}</span>
+                    <span class="aqi-label">${level.label}</span>
+                </div>
+                <p class="aqi-description">${level.description}</p>
+            </div>
+            <div class="pollutants-grid">
+                <div class="pollutant-item">
+                    <span class="pollutant-name">PM2.5</span>
+                    <span class="pollutant-value">${components.pm2_5} µg/m³</span>
+                </div>
+                <div class="pollutant-item">
+                    <span class="pollutant-name">PM10</span>
+                    <span class="pollutant-value">${components.pm10} µg/m³</span>
+                </div>
+                <div class="pollutant-item">
+                    <span class="pollutant-name">O₃</span>
+                    <span class="pollutant-value">${components.o3} µg/m³</span>
+                </div>
+                <div class="pollutant-item">
+                    <span class="pollutant-name">NO₂</span>
+                    <span class="pollutant-value">${components.no2} µg/m³</span>
+                </div>
+                <div class="pollutant-item">
+                    <span class="pollutant-name">SO₂</span>
+                    <span class="pollutant-value">${components.so2} µg/m³</span>
+                </div>
+                <div class="pollutant-item">
+                    <span class="pollutant-name">CO</span>
+                    <span class="pollutant-value">${components.co} µg/m³</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    airQualityElement.innerHTML = htmlContent;
+    airQualityElement.style.display = 'block';
+}
+
+function displayUVIndex(data) {
+    const uvElement = document.getElementById('uv-index');
+
+    if (!data.value) {
+        return;
+    }
+
+    const uv = data.value;
+
+    const uvLevels = {
+        low: { max: 2.9, label: 'Baixo', color: '#4fd1c5', protection: 'Sem proteção necessária' },
+        moderate: { max: 5.9, label: 'Moderado', color: '#f6e05e', protection: 'Use proteção em horários de pico' },
+        high: { max: 7.9, label: 'Alto', color: '#ed8936', protection: 'Use protetor solar e chapéu' },
+        veryHigh: { max: 10.9, label: 'Muito Alto', color: '#f56565', protection: 'Proteção extra necessária' },
+        extreme: { max: Infinity, label: 'Extremo', color: '#c53030', protection: 'Evite exposição solar' }
+    };
+
+    let level = uvLevels.low;
+    for (const [key, value] of Object.entries(uvLevels)) {
+        if (uv <= value.max) {
+            level = value;
+            break;
+        }
+    }
+
+    const htmlContent = `
+        <div class="uv-container">
+            <h3>☀️ Índice UV</h3>
+            <div class="uv-display">
+                <div class="uv-badge" style="background-color: ${level.color}">
+                    <span class="uv-value">${uv.toFixed(1)}</span>
+                    <span class="uv-label">${level.label}</span>
+                </div>
+                <p class="uv-protection">${level.protection}</p>
+            </div>
+        </div>
+    `;
+
+    uvElement.innerHTML = htmlContent;
+    uvElement.style.display = 'block';
+}
+
+function displayHourlyForecast(data) {
+    const hourlyElement = document.getElementById('hourly-forecast');
+
+    if (!data.hourly || data.hourly.length === 0) {
+        return;
+    }
+
+    const next24Hours = data.hourly.slice(0, 24);
+
+    const htmlContent = `
+        <div class="hourly-forecast-container">
+            <h3>⏰ Previsão por Hora (24h)</h3>
+            <div class="hourly-grid">
+                ${next24Hours.map(hour => `
+                    <div class="hourly-item">
+                        <p class="hourly-time">${new Date(hour.dt * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
+                        <img src="https://openweathermap.org/img/wn/${hour.weather[0].icon}.png"
+                             alt="${hour.weather[0].description}"
+                             class="hourly-icon">
+                        <p class="hourly-temp">${Math.round(hour.temp)}°C</p>
+                        <p class="hourly-desc">${hour.weather[0].description}</p>
+                        <p class="hourly-humidity">💧 ${hour.humidity}%</p>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+
+    hourlyElement.innerHTML = htmlContent;
+    hourlyElement.style.display = 'block';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
