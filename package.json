@@ -1,12 +1,14 @@
 {
   "name": "clima",
-  "version": "1.0.0",
-  "main": "server.js",
+  "version": "2.0.0",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node src/server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "axios": "^1.6.8"
+    "axios": "^1.6.8",
+    "dotenv": "^16.4.5",
+    "morgan": "^1.10.0"
   }
 }

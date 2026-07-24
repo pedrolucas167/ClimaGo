@@ -1,7 +1,4 @@
-/* ===================
-   Root Theme Variables
-   =================== */
-   :root {
+:root {
     --primary-color: #4361ee;
     --primary-hover: #3a56d4;
     --secondary-color: #7209b7;
@@ -19,9 +16,6 @@
     --error-color: #f72585;
 }
 
-/* ===================
-   Dark Mode Support
-   =================== */
 @media (prefers-color-scheme: dark) {
     :root {
         --background-color: #121212;
@@ -33,9 +27,6 @@
     }
 }
 
-/* ===================
-   Base Styles
-   =================== */
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     text-align: center;
@@ -48,9 +39,6 @@ body {
     background-image: radial-gradient(circle at 10% 20%, rgba(67, 97, 238, 0.05) 0%, rgba(255, 255, 255, 0) 90%);
 }
 
-/* ===================
-   Container
-   =================== */
 #container {
     max-width: 480px;
     margin: 40px auto;
@@ -63,9 +51,6 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
-/* ===================
-   Typography
-   =================== */
 h1 {
     color: var(--primary-color);
     margin-bottom: 1.75rem;
@@ -79,13 +64,10 @@ h1 {
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-/* ===================
-   Input Group
-   =================== */
 .input-group {
     display: flex;
     gap: 10px;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     flex-wrap: wrap;
 }
 
@@ -126,9 +108,6 @@ input:invalid {
     box-shadow: 0 0 0 2px rgba(247, 37, 133, 0.2);
 }
 
-/* ===================
-   Button
-   =================== */
 button {
     padding: 0.875rem 1.75rem;
     border: none;
@@ -155,9 +134,15 @@ button:active {
     box-shadow: 0 2px 4px rgba(67, 97, 238, 0.2);
 }
 
-/* ===================
-   Weather Section
-   =================== */
+.geo-btn {
+    padding: 0.875rem 1.25rem;
+    background: linear-gradient(135deg, var(--success-color), #3a9bd9);
+}
+
+.geo-btn:hover {
+    background: linear-gradient(135deg, #3ab8e0, #2d8ab8);
+}
+
 #weather {
     margin-top: 2rem;
     padding: 1.75rem;
@@ -217,9 +202,6 @@ button:active {
     margin: 0.5rem 0;
 }
 
-/* ===================
-   States and Feedback
-   =================== */
 .loading {
     font-size: 1rem;
     color: var(--primary-color);
@@ -245,7 +227,6 @@ button:active {
     gap: 0.5rem;
 }
 
-
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
@@ -270,9 +251,185 @@ button:active {
     will-change: transform;
 }
 
-/* ===================
-   Responsiveness
-   =================== */
+.auto-update-toggle {
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.auto-update-toggle label {
+    font-size: 0.9rem;
+    color: var(--text-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.auto-update-toggle input[type="checkbox"] {
+    width: auto;
+    flex-grow: 0;
+    cursor: pointer;
+}
+
+.update-info {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.85rem;
+    color: var(--text-light);
+}
+
+.cached-badge {
+    display: inline-block;
+    background-color: rgba(76, 201, 240, 0.15);
+    color: #2d8ab8;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-top: 0.5rem;
+}
+
+#forecast {
+    margin-top: 2rem;
+    padding: 1.75rem;
+    background-color: rgba(114, 9, 183, 0.03);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(114, 9, 183, 0.1);
+    transition: var(--transition);
+}
+
+.forecast-container h3 {
+    color: var(--secondary-color);
+    margin-bottom: 1.5rem;
+    font-size: 1.25rem;
+}
+
+.forecast-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 1rem;
+}
+
+.forecast-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+}
+
+.forecast-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.forecast-date {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.forecast-icon {
+    width: 50px;
+    height: 50px;
+    margin: 0.5rem 0;
+}
+
+.forecast-temp {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin: 0.25rem 0;
+}
+
+.forecast-desc {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    text-align: center;
+    margin: 0;
+    text-transform: capitalize;
+}
+
+.recent-searches {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.recent-searches h3 {
+    font-size: 1rem;
+    color: var(--text-light);
+    margin-bottom: 1rem;
+    font-weight: 500;
+}
+
+#recentSearchesList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.recent-search-btn {
+    padding: 0.5rem 1rem;
+    background-color: rgba(67, 97, 238, 0.1);
+    color: var(--primary-color);
+    border: 1px solid rgba(67, 97, 238, 0.2);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+.recent-search-btn:hover {
+    background-color: rgba(67, 97, 238, 0.2);
+    transform: translateY(-1px);
+}
+
+.no-searches {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    font-style: italic;
+}
+
+.ai-btn {
+    margin-top: 1rem;
+    width: 100%;
+    background: linear-gradient(135deg, #9b59b6, #8e44ad);
+}
+
+.ai-btn:hover {
+    background: linear-gradient(135deg, #8e44ad, #7d3c98);
+}
+
+.ai-advice-container {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background-color: rgba(155, 89, 182, 0.1);
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(155, 89, 182, 0.2);
+}
+
+.ai-advice-container h3 {
+    color: #8e44ad;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.ai-advice-content {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--text-color);
+    text-align: left;
+}
+
 @media (max-width: 480px) {
     #container {
         padding: 1.75rem;
