@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ClimaGo - Clima em Tempo Real</title>
+    <meta name="theme-color" content="#15162a">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <script src="js/client.js"></script>
 </head>
@@ -14,7 +18,7 @@
         <div class="input-group">
             <input type="text" id="city" placeholder="Digite o nome da cidade" onkeypress="handleKeyPress(event)">
             <button onclick="getWeather()">Buscar</button>
-            <button onclick="getLocation()" class="geo-btn" title="Usar minha localização">📍</button>
+            <button onclick="getLocation()" class="geo-btn" title="Usar minha localização" aria-label="Usar minha localização" data-tooltip="Usar minha localização">📍</button>
         </div>
         
         <div class="auto-update-toggle">
