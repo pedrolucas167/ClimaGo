@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const morgan = require('morgan');
+const path = require('path');
 const app = express();
 
 const API_KEY = process.env.OPENWEATHER_API_KEY;
@@ -12,7 +13,7 @@ const CACHE_DURATION = 10 * 60 * 1000;
 
 app.use(morgan('dev'));
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 const getWeather = async (city) => {
     const cacheKey = city.toLowerCase();
