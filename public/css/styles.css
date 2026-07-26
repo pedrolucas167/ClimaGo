@@ -528,16 +528,17 @@ button:active {
     margin: 28px auto 40px;
     padding: 28px;
     border-radius: 28px;
-    text-align: left;
+    text-align: center;
 }
 
 .hero {
     display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
+    align-items: center;
+    justify-content: center;
     gap: 1.5rem;
     margin-bottom: 1.5rem;
-    text-align: left;
+    text-align: center;
+    flex-wrap: wrap;
 }
 
 .eyebrow,
@@ -561,7 +562,7 @@ button:active {
     display: flex;
     flex-wrap: wrap;
     gap: 0.6rem;
-    justify-content: flex-end;
+    justify-content: center;
 }
 
 .hero-badge {
@@ -629,11 +630,12 @@ button:active {
 
 .panel-heading {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
+    align-items: center;
+    justify-content: center;
     gap: 1rem;
-    text-align: left;
+    text-align: center;
     margin-bottom: 1rem;
+    flex-wrap: wrap;
 }
 
 .panel-heading h3 {
@@ -646,7 +648,7 @@ button:active {
     margin: 0;
     color: var(--text-muted);
     font-size: 0.85rem;
-    text-align: right;
+    text-align: center;
 }
 
 .weather-hero {
@@ -657,10 +659,11 @@ button:active {
 
 .weather-heading {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
+    align-items: center;
+    justify-content: center;
     gap: 1rem;
-    text-align: left;
+    text-align: center;
+    flex-wrap: wrap;
 }
 
 .weather-heading h2 {
@@ -672,7 +675,7 @@ button:active {
 .weather-status {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    align-items: center;
     gap: 0.45rem;
 }
 
@@ -684,12 +687,13 @@ button:active {
 .weather-snapshot {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     gap: 1rem;
     padding: 1.25rem;
     border-radius: 20px;
     background: linear-gradient(135deg, rgba(109, 94, 252, 0.16), rgba(79, 209, 197, 0.08));
     border: 1px solid rgba(180, 190, 255, 0.1);
+    flex-wrap: wrap;
 }
 
 .weather-metrics {
@@ -703,7 +707,7 @@ button:active {
     border-radius: 16px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(180, 190, 255, 0.08);
-    text-align: left;
+    text-align: center;
 }
 
 .metric-label {
@@ -744,13 +748,13 @@ button:active {
     .weather-heading,
     .weather-snapshot {
         flex-direction: column;
-        align-items: stretch;
+        align-items: center;
     }
 
     .hero-badges,
     .weather-status {
-        justify-content: flex-start;
-        align-items: flex-start;
+        justify-content: center;
+        align-items: center;
     }
 
     .dashboard-grid,
@@ -764,7 +768,61 @@ button:active {
     }
 
     .panel-note {
-        text-align: left;
+        text-align: center;
+    }
+}
+
+@media (max-width: 600px) {
+    .app-shell {
+        margin: 16px auto;
+        padding: 24px;
+        border-radius: 20px;
+    }
+
+    .hero {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .hero-badges {
+        justify-content: center;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .weather-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .input-group {
+        flex-direction: column;
+    }
+
+    input,
+    button {
+        width: 100%;
+    }
+
+    .weather-heading h2 {
+        font-size: 1.4rem;
+    }
+
+    .temperature {
+        font-size: 3rem;
+    }
+
+    .metric-card {
+        padding: 1.1rem;
+    }
+
+    .metric-value {
+        font-size: 1.2rem;
+    }
+
+    .panel-heading h3 {
+        font-size: 1rem;
     }
 }
 
