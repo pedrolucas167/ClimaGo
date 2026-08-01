@@ -321,6 +321,104 @@ Responda de forma direta e prática, sem introduções desnecessárias.`;
     }
 });
 
+app.post('/api/ai/extreme-phenomena', async (req, res) => {
+    const { weatherData, forecastData, city } = req.body;
+
+    if (!weatherData || !city) {
+        return res.status(400).json({ error: 'Dados do clima ou cidade não fornecidos' });
+    }
+
+    try {
+        const currentConditions = `
+Cidade: ${city}
+Temperatura atual: ${weatherData.main.temp}°C
+Sensação térmica: ${weatherData.main.feels_like}°C
+Umidade: ${weatherData.main.humidity}%
+Pressão atmosférica: ${weatherData.main.pressure} hPa
+Velocidade do vento: ${weatherData.wind.speed} m/s
+Direção do vento: ${weatherData.wind.deg}°
+Condição atual: ${weatherData.weather[0].description}
+Código do clima: ${weatherData.weather[0].id}
+Visibilidade: ${weatherData.visibility || 10000} metros
+Nuvens: ${weatherData.clouds?.all || 0}%`;
+
+        const forecastInfo = forecastData ? `
+Previsão para as próximas horas:
+${forecastData.list?.slice(0, 8).map(item => 
+    `${new Date(item.dt * 1000).toLocaleTimeString('pt-BR')}: ${item.main.temp}°C, ${item.weather[0].description}, Vento: ${item.wind.speed} m/s, Pressão: ${item.main.pressure} hPa`
+).join('\n') || 'Dados de previsão não disponíveis'}` : '';
+
+        const prompt = `Como meteorologista especialista em fenômenos atmosféricos extremos, analise os seguintes dados e identifique qualquer fenômeno extremo ou perigoso:
+
+${currentConditions}
+${forecastInfo}
+
+Identifique e descreva em português do Brasil:
+1. **Nuvens Cumulonimbus**: Indicadores como desenvolvimento vertical intenso, base escura, topo em forma de bigorna
+2. **Tempestades severas**: Raios, trovões, chuva intensa, granizo
+3. **Furacões/Ciclones**: Baixa pressão atmosférica (<980 hPa), ventos fortes (>25 m/s), circulação organizada
+4. **Tornados**: Rotação de ventos, pressão muito baixa, funnel clouds
+5. **Frentes frias**: Mudança brusca de temperatura, aumento de pressão
+6. **Ondas de calor**: Temperaturas extremamente altas para a região
+7. **Nevoeiro denso**: Visibilidade <1000m, umidade alta
+8. **Tempestades de areia**: Vento forte, baixa visibilidade, regiões áridas
+9. **Precipitação extrema**: Chuva intensa em curto período
+10. **Condições de gelo**: Temperaturas próximas ou abaixo de 0°C com umidade
+
+Para cada fenômeno detectado, forneça:
+- Nome do fenômeno
+- Nível de perigo (BAIXO/MÉDIO/ALTO/EXTREMO)
+- Descrição detalhada
+- Recomendações de segurança
+
+Se nenhum fenômeno extremo for detectado, informe que as condições estão normais.
+
+Responda em formato JSON válido com esta estrutura:
+{
+  "phenomena": [
+    {
+      "name": "nome do fenômeno",
+      "dangerLevel": "BAIXO|MÉDIO|ALTO|EXTREMO",
+      "description": "descrição detalhada",
+      "recommendations": ["recomendação1", "recomendação2"]
+    }
+  ],
+  "summary": "resumo geral das condições"
+}`;
+
+        const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+            model: 'anthropic/claude-3-haiku',
+            messages: [
+                { role: 'system', content: 'Você é um meteorologista especialista em fenômenos atmosféricos extremos. Responda sempre em formato JSON válido.' },
+                { role: 'user', content: prompt }
+            ],
+            max_tokens: 1000,
+            temperature: 0.3
+        }, {
+            headers: {
+                'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const aiResponse = response.data.choices[0].message.content;
+        const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+        
+        if (jsonMatch) {
+            const phenomenaData = JSON.parse(jsonMatch[0]);
+            res.json(phenomenaData);
+        } else {
+            res.json({
+                phenomena: [],
+                summary: aiResponse
+            });
+        }
+    } catch (error) {
+        console.error('Erro na API de detecção de fenômenos extremos:', error.message);
+        res.status(500).json({ error: `Erro ao analisar fenômenos extremos: ${error.message}` });
+    }
+});
+
 app.get('/api/onecall', async (req, res) => {
     const { lat, lon } = req.query;
 

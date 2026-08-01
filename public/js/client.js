@@ -114,8 +114,9 @@ async function getWeatherByCoords(lat, lon) {
         displayWeather(data);
         saveRecentSearch(data.name);
 
+        const forecastData = await getForecast(data.name);
+        
         await Promise.all([
-            getForecast(data.name),
             getAirQuality(lat, lon),
             getUVIndex(lat, lon),
             getHourlyForecast(lat, lon)
@@ -145,9 +146,11 @@ async function getForecast(city) {
 
         const data = await response.json();
         displayForecast(data);
+        return data;
 
     } catch (error) {
         console.error('Erro ao obter previsão:', error);
+        return null;
     }
 }
 
@@ -205,6 +208,34 @@ async function getHourlyForecast(lat, lon) {
     }
 }
 
+async function getExtremePhenomena(weatherData, forecastData) {
+    const phenomenaElement = document.getElementById('extreme-phenomena');
+
+    try {
+        const response = await fetch('/api/ai/extreme-phenomena', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                weatherData: weatherData,
+                forecastData: forecastData,
+                city: currentCity
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Erro ao analisar fenômenos extremos');
+        }
+
+        const data = await response.json();
+        displayExtremePhenomena(data);
+
+    } catch (error) {
+        console.error('Erro ao obter análise de fenômenos extremos:', error);
+    }
+}
+
 function displayForecast(data) {
     const forecastElement = document.getElementById('forecast');
     
@@ -254,6 +285,7 @@ async function getWeather(isAutoUpdate = false) {
         document.getElementById('air-quality').style.display = 'none';
         document.getElementById('uv-index').style.display = 'none';
         document.getElementById('hourly-forecast').style.display = 'none';
+        document.getElementById('extreme-phenomena').style.display = 'none';
     }
 
     try {
@@ -272,7 +304,7 @@ async function getWeather(isAutoUpdate = false) {
 
         if (!isAutoUpdate) {
             saveRecentSearch(city);
-            await getForecast(city);
+            const forecastData = await getForecast(city);
 
             if (data.coord) {
                 await Promise.all([
@@ -348,7 +380,10 @@ function displayWeather(data) {
         <div class="update-info weather-footer">
             <p>Atualização local: ${updateTime}</p>
         </div>
-        <button onclick="getAIAdvice()" class="ai-btn">🤖 Obter Recomendações da IA</button>
+        <div class="weather-actions">
+            <button onclick="getAIAdvice()" class="ai-btn">🤖 Recomendações</button>
+            <button onclick="analyzeExtremePhenomena()" class="phenomena-btn">🌍 Fenômenos Extremos</button>
+        </div>
         <div id="ai-advice" style="display: none;"></div>
     `;
 
@@ -403,6 +438,91 @@ async function getAIAdvice() {
         `;
     } finally {
         loadingElement.style.display = 'none';
+    }
+}
+
+async function analyzeExtremePhenomena() {
+    if (!currentWeatherData || !currentCity) {
+        alert('Por favor, busque o clima de uma cidade primeiro.');
+        return;
+    }
+
+    const phenomenaElement = document.getElementById('extreme-phenomena');
+    const loadingElement = document.getElementById('loading');
+    const phenomenaBtn = document.querySelector('.phenomena-btn');
+    
+    // Show loading state
+    phenomenaElement.style.display = 'block';
+    phenomenaElement.innerHTML = `
+        <div class="phenomena-container">
+            <h3>🌍 Fenômenos Atmosféricos Extremos</h3>
+            <p class="loading">Analisando condições atmosféricas com IA...</p>
+        </div>
+    `;
+    loadingElement.style.display = 'block';
+    
+    // Disable button during analysis
+    if (phenomenaBtn) {
+        phenomenaBtn.disabled = true;
+        phenomenaBtn.innerHTML = '🔄 Analisando...';
+    }
+
+    try {
+        // Get forecast data if not already available
+        let forecastData = null;
+        if (currentWeatherData.coord) {
+            try {
+                const forecastResponse = await fetch(`/api/forecast?city=${encodeURIComponent(currentCity)}`);
+                if (forecastResponse.ok) {
+                    forecastData = await forecastResponse.json();
+                }
+            } catch (error) {
+                console.error('Erro ao obter previsão:', error);
+            }
+        }
+
+        const response = await fetch('/api/ai/extreme-phenomena', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                weatherData: currentWeatherData,
+                forecastData: forecastData,
+                city: currentCity
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const errorMsg = errorData.error || 'Erro ao analisar fenômenos extremos.';
+            throw new Error(errorMsg);
+        }
+
+        const data = await response.json();
+        displayExtremePhenomena(data);
+        
+        // Scroll to phenomena section
+        phenomenaElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (error) {
+        console.error('Erro ao analisar fenômenos extremos:', error);
+        phenomenaElement.innerHTML = `
+            <div class="phenomena-container">
+                <h3>🌍 Fenômenos Atmosféricos Extremos</h3>
+                <p class="error-message">
+                    ${error.message || 'Erro inesperado ao analisar fenômenos. Por favor, tente novamente mais tarde.'}
+                </p>
+            </div>
+        `;
+    } finally {
+        loadingElement.style.display = 'none';
+        
+        // Re-enable button
+        if (phenomenaBtn) {
+            phenomenaBtn.disabled = false;
+            phenomenaBtn.innerHTML = '🌍 Fenômenos Extremos';
+        }
     }
 }
 
@@ -541,6 +661,105 @@ function displayHourlyForecast(data) {
 
     hourlyElement.innerHTML = htmlContent;
     hourlyElement.style.display = 'block';
+}
+
+function displayExtremePhenomena(data) {
+    const phenomenaElement = document.getElementById('extreme-phenomena');
+
+    if (!data.phenomena || data.phenomena.length === 0) {
+        phenomenaElement.innerHTML = `
+            <div class="phenomena-container">
+                <h3>🌍 Fenômenos Atmosféricos Extremos</h3>
+                <p class="phenomena-summary">${data.summary || 'Nenhum fenômeno extremo detectado no momento.'}</p>
+            </div>
+        `;
+        phenomenaElement.style.display = 'block';
+        return;
+    }
+
+    const dangerColors = {
+        'BAIXO': '#4fd1c5',
+        'MÉDIO': '#f6e05e',
+        'ALTO': '#ed8936',
+        'EXTREMO': '#c53030'
+    };
+
+    // Check for high danger phenomena and trigger alerts
+    const highDangerPhenomena = data.phenomena.filter(p => 
+        p.dangerLevel === 'ALTO' || p.dangerLevel === 'EXTREMO'
+    );
+
+    if (highDangerPhenomena.length > 0) {
+        triggerDangerAlert(highDangerPhenomena);
+    }
+
+    const htmlContent = `
+        <div class="phenomena-container">
+            <h3>🌍 Fenômenos Atmosféricos Extremos</h3>
+            <p class="phenomena-summary">${data.summary}</p>
+            <div class="phenomena-grid">
+                ${data.phenomena.map(phenomenon => `
+                    <div class="phenomenon-card ${phenomenon.dangerLevel === 'ALTO' || phenomenon.dangerLevel === 'EXTREMO' ? 'phenomenon-card--dangerous' : ''}" style="border-left: 4px solid ${dangerColors[phenomenon.dangerLevel] || '#4fd1c5'}">
+                        <div class="phenomenon-header">
+                            <h4 class="phenomenon-name">${phenomenon.name}</h4>
+                            <span class="phenomenon-danger" style="background-color: ${dangerColors[phenomenon.dangerLevel] || '#4fd1c5'}">${phenomenon.dangerLevel}</span>
+                        </div>
+                        <p class="phenomenon-description">${phenomenon.description}</p>
+                        <div class="phenomenon-recommendations">
+                            <p class="recommendations-title">🛡️ Recomendações:</p>
+                            <ul class="recommendations-list">
+                                ${phenomenon.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+
+    phenomenaElement.innerHTML = htmlContent;
+    phenomenaElement.style.display = 'block';
+}
+
+function triggerDangerAlert(phenomena) {
+    // Check if browser supports notifications
+    if ('Notification' in window && Notification.permission === 'granted') {
+        phenomena.forEach(phenomenon => {
+            new Notification(`⚠️ Alerta de Perigo: ${phenomenon.name}`, {
+                body: `${phenomenon.description}\n\nNível: ${phenomenon.dangerLevel}`,
+                icon: '/favicon.ico',
+                tag: 'weather-danger'
+            });
+        });
+    }
+
+    // Add visual alert banner
+    const alertBanner = document.createElement('div');
+    alertBanner.className = 'danger-alert-banner';
+    alertBanner.innerHTML = `
+        <div class="alert-content">
+            <span class="alert-icon">⚠️</span>
+            <div class="alert-message">
+                <strong>Alerta de Fenômenos Perigosos</strong>
+                <p>${phenomena.map(p => p.name).join(', ')} detectados em ${currentCity}</p>
+            </div>
+            <button class="alert-close" onclick="this.parentElement.parentElement.remove()">✕</button>
+        </div>
+    `;
+    
+    document.body.appendChild(alertBanner);
+    
+    // Auto-remove after 10 seconds
+    setTimeout(() => {
+        if (alertBanner.parentElement) {
+            alertBanner.remove();
+        }
+    }, 10000);
+
+    // Request notification permission if not granted
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
