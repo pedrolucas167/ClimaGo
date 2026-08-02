@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ClimaGo - Clima em Tempo Real</title>
+    <meta name="description" content="Dashboard climático com clima em tempo real, previsão, qualidade do ar, índice UV e detecção de fenômenos atmosféricos extremos.">
     <meta name="theme-color" content="#15162a">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,64 +14,89 @@
     <script src="js/client.js"></script>
 </head>
 <body>
+    <a href="#main-content" class="skip-link">Pular para o conteúdo principal</a>
+    
     <div id="container" class="app-shell">
         <header class="hero">
             <div class="hero-copy">
                 <p class="eyebrow">Dashboard climático</p>
                 <h1>ClimaGo</h1>
-                <p class="hero-description">Clima em tempo real, previsão, qualidade do ar, índice UV e visão por hora em uma interface única.</p>
+                <p class="hero-description">Clima em tempo real, previsão, qualidade do ar, índice UV e detecção de fenômenos extremos.</p>
             </div>
-            <div class="hero-badges">
-                <span class="hero-badge">Tempo real</span>
-                <span class="hero-badge">Previsão 5 dias</span>
-                <span class="hero-badge">Qualidade do ar</span>
-                <span class="hero-badge">Índice UV</span>
+            <div class="hero-badges" role="list" aria-label="Funcionalidades disponíveis">
+                <span class="hero-badge" role="listitem">Tempo real</span>
+                <span class="hero-badge" role="listitem">Previsão 5 dias</span>
+                <span class="hero-badge" role="listitem">Qualidade do ar</span>
+                <span class="hero-badge" role="listitem">Índice UV</span>
+                <span class="hero-badge" role="listitem">Fenômenos extremos</span>
             </div>
         </header>
 
-        <section class="search-panel">
-            <div class="input-group">
-                <input type="text" id="city" placeholder="Digite o nome da cidade" onkeypress="handleKeyPress(event)">
-                <button onclick="getWeather()">Buscar</button>
-                <button onclick="getLocation()" class="geo-btn" title="Usar minha localização" aria-label="Usar minha localização" data-tooltip="Usar minha localização">📍</button>
-            </div>
+        <section class="search-panel" aria-label="Busca de clima">
+            <form class="input-group" onsubmit="event.preventDefault(); getWeather();">
+                <label for="city" class="visually-hidden">Nome da cidade</label>
+                <input 
+                    type="text" 
+                    id="city" 
+                    name="city"
+                    placeholder="Digite o nome da cidade" 
+                    onkeypress="handleKeyPress(event)"
+                    autocomplete="off"
+                    aria-required="true"
+                >
+                <button type="submit" aria-label="Buscar clima">Buscar</button>
+                <button 
+                    type="button" 
+                    onclick="getLocation()" 
+                    class="geo-btn" 
+                    aria-label="Usar minha localização atual"
+                    title="Usar minha localização"
+                >📍</button>
+            </form>
 
             <div class="auto-update-toggle">
-                <label>
+                <label for="autoUpdate">
                     <input type="checkbox" id="autoUpdate" onchange="toggleAutoUpdate()">
-                    Atualização automática (5 min)
+                    <span>Atualização automática (5 min)</span>
                 </label>
             </div>
         </section>
 
-        <p id="loading" class="loading" style="display: none;">Carregando...</p>
+        <div id="loading" class="loading" role="status" aria-live="polite" aria-hidden="true">
+            <span class="loading-spinner" aria-hidden="true"></span>
+            <span>Carregando dados meteorológicos...</span>
+        </div>
 
-        <main class="dashboard-grid">
-            <section class="dashboard-card dashboard-card--featured">
-                <div id="weather"></div>
+        <main id="main-content" class="dashboard-grid" role="main">
+            <section class="dashboard-card dashboard-card--featured" aria-labelledby="weather-heading">
+                <div id="weather" role="region" aria-live="polite"></div>
             </section>
 
-            <section class="dashboard-card dashboard-card--wide" id="forecast" style="display: none;"></section>
+            <section class="dashboard-card dashboard-card--wide" id="forecast" style="display: none;" aria-labelledby="forecast-heading" role="region"></section>
 
-            <section class="dashboard-card" id="air-quality" style="display: none;"></section>
+            <section class="dashboard-card" id="air-quality" style="display: none;" aria-labelledby="air-quality-heading" role="region"></section>
 
-            <section class="dashboard-card" id="uv-index" style="display: none;"></section>
+            <section class="dashboard-card" id="uv-index" style="display: none;" aria-labelledby="uv-heading" role="region"></section>
 
-            <section class="dashboard-card dashboard-card--wide" id="hourly-forecast" style="display: none;"></section>
+            <section class="dashboard-card dashboard-card--wide" id="hourly-forecast" style="display: none;" aria-labelledby="hourly-heading" role="region"></section>
 
-            <section class="dashboard-card dashboard-card--wide" id="extreme-phenomena" style="display: none;"></section>
+            <section class="dashboard-card dashboard-card--wide" id="extreme-phenomena" style="display: none;" aria-labelledby="phenomena-heading" role="region"></section>
 
-            <section class="dashboard-card dashboard-card--wide recent-searches">
+            <section class="dashboard-card dashboard-card--wide recent-searches" aria-labelledby="history-heading">
                 <div class="panel-heading">
                     <div>
                         <p class="panel-kicker">Histórico</p>
-                        <h3>Buscas recentes</h3>
+                        <h3 id="history-heading">Buscas recentes</h3>
                     </div>
                     <p class="panel-note">Acesso rápido às últimas cidades consultadas</p>
                 </div>
-                <div id="recentSearchesList"></div>
+                <div id="recentSearchesList" role="list" aria-label="Cidades pesquisadas recentemente"></div>
             </section>
         </main>
+        
+        <footer class="app-footer">
+            <p>&copy; 2026 ClimaGo. Dados fornecidos por OpenWeatherMap.</p>
+        </footer>
     </div>
 </body>
 </html>
