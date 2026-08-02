@@ -47,10 +47,10 @@
                 <button type="submit" aria-label="Buscar clima">Buscar</button>
                 <button 
                     type="button" 
-                    onclick="getLocation()" 
+                    onclick="startLocationTracking()" 
                     class="geo-btn" 
-                    aria-label="Usar minha localização atual"
-                    title="Usar minha localização"
+                    aria-label="Iniciar rastreamento de localização"
+                    title="Iniciar rastreamento de localização"
                 >📍</button>
             </form>
 
@@ -59,6 +59,11 @@
                     <input type="checkbox" id="autoUpdate" onchange="toggleAutoUpdate()">
                     <span>Atualização automática (5 min)</span>
                 </label>
+            </div>
+
+            <div id="location-status" class="location-status" style="display: none;">
+                <span class="location-status-dot"></span>
+                <span class="location-status-text">Rastreamento ativo</span>
             </div>
         </section>
 

@@ -1,4 +1,6 @@
 let autoUpdateInterval = null;
+let locationWatchId = null;
+let isTrackingLocation = false;
 let currentCity = null;
 let currentWeatherData = null;
 const UPDATE_INTERVAL = 5 * 60 * 1000;
@@ -87,10 +89,106 @@ function getLocation() {
         },
         (error) => {
             console.error('Erro de geolocalização:', error);
-            alert('Erro ao obter localização. Por favor, verifique as permissões do navegador.');
+            handleGeolocationError(error);
             loadingElement.style.display = 'none';
         }
     );
+}
+
+function startLocationTracking() {
+    if (!navigator.geolocation) {
+        alert('Geolocalização não é suportada pelo seu navegador');
+        return;
+    }
+
+    if (isTrackingLocation) {
+        stopLocationTracking();
+        return;
+    }
+
+    const loadingElement = document.getElementById('loading');
+    loadingElement.style.display = 'block';
+
+    const options = {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+    };
+
+    locationWatchId = navigator.geolocation.watchPosition(
+        async (position) => {
+            const { latitude, longitude } = position.coords;
+            const accuracy = position.coords.accuracy;
+            
+            console.log(`Localização atualizada: ${latitude.toFixed(4)}, ${longitude.toFixed(4)} (precisão: ${accuracy.toFixed(0)}m)`);
+            
+            await getWeatherByCoords(latitude, longitude);
+            updateLocationTrackingUI(true);
+        },
+        (error) => {
+            console.error('Erro no rastreamento de localização:', error);
+            handleGeolocationError(error);
+            stopLocationTracking();
+        },
+        options
+    );
+
+    isTrackingLocation = true;
+    updateLocationTrackingUI(true);
+}
+
+function stopLocationTracking() {
+    if (locationWatchId !== null) {
+        navigator.geolocation.clearWatch(locationWatchId);
+        locationWatchId = null;
+    }
+    isTrackingLocation = false;
+    updateLocationTrackingUI(false);
+}
+
+function handleGeolocationError(error) {
+    let message = 'Erro ao obter localização.';
+    
+    switch(error.code) {
+        case error.PERMISSION_DENIED:
+            message = 'Permissão de localização negada. Por favor, habilite a geolocalização nas configurações do navegador.';
+            break;
+        case error.POSITION_UNAVAILABLE:
+            message = 'Informações de localização indisponíveis.';
+            break;
+        case error.TIMEOUT:
+            message = 'Tempo esgotado ao obter localização.';
+            break;
+        default:
+            message = 'Erro desconhecido ao obter localização.';
+    }
+    
+    alert(message);
+}
+
+function updateLocationTrackingUI(isTracking) {
+    const geoBtn = document.querySelector('.geo-btn');
+    const locationStatus = document.getElementById('location-status');
+    
+    if (geoBtn) {
+        if (isTracking) {
+            geoBtn.innerHTML = '🛑';
+            geoBtn.title = 'Parar rastreamento de localização';
+            geoBtn.setAttribute('aria-label', 'Parar rastreamento de localização');
+            geoBtn.style.background = 'rgba(239, 68, 68, 0.2)';
+            geoBtn.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+        } else {
+            geoBtn.innerHTML = '📍';
+            geoBtn.title = 'Iniciar rastreamento de localização';
+            geoBtn.setAttribute('aria-label', 'Iniciar rastreamento de localização');
+            geoBtn.style.background = 'rgba(255, 255, 255, 0.1)';
+            geoBtn.style.borderColor = 'var(--border-color)';
+        }
+    }
+    
+    if (locationStatus) {
+        locationStatus.style.display = isTracking ? 'flex' : 'none';
+    }
 }
 
 async function getWeatherByCoords(lat, lon) {
