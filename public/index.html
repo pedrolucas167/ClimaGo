@@ -10,8 +10,23 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#7c3aed">
     <link rel="stylesheet" href="css/styles.css">
     <script src="js/client.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('Service Worker registrado com sucesso:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('Falha ao registrar Service Worker:', error);
+                    });
+            });
+        }
+    </script>
 </head>
 <body>
     <a href="#main-content" class="skip-link">Pular para o conteúdo principal</a>
@@ -24,13 +39,32 @@
                 <p class="hero-description">Clima em tempo real, previsão, qualidade do ar, índice UV e detecção de fenômenos extremos.</p>
             </div>
             <div class="hero-badges" role="list" aria-label="Funcionalidades disponíveis">
-                <span class="hero-badge" role="listitem">Tempo real</span>
-                <span class="hero-badge" role="listitem">Previsão 5 dias</span>
-                <span class="hero-badge" role="listitem">Qualidade do ar</span>
-                <span class="hero-badge" role="listitem">Índice UV</span>
-                <span class="hero-badge" role="listitem">Fenômenos extremos</span>
+                <span class="hero-badge" role="listitem">🌡️ Tempo real</span>
+                <span class="hero-badge" role="listitem">📅 Previsão 5 dias</span>
+                <span class="hero-badge" role="listitem">🌬️ Qualidade do ar</span>
+                <span class="hero-badge" role="listitem">☀️ Índice UV</span>
+                <span class="hero-badge" role="listitem">🌍 Fenômenos extremos</span>
             </div>
         </header>
+
+        <nav class="quick-actions" role="navigation" aria-label="Ações rápidas">
+            <button class="quick-action-btn" onclick="showExportModal()" title="Exportar dados">
+                <span>📊</span>
+                <span>Exportar</span>
+            </button>
+            <button class="quick-action-btn" onclick="showHeatmapModal()" title="Mapa de calor">
+                <span>🗺️</span>
+                <span>Mapa</span>
+            </button>
+            <button class="quick-action-btn" onclick="toggleOfflineMode()" title="Modo offline">
+                <span>📴</span>
+                <span>Offline</span>
+            </button>
+            <button class="quick-action-btn" onclick="showSettingsModal()" title="Configurações">
+                <span>⚙️</span>
+                <span>Config</span>
+            </button>
+        </nav>
 
         <section class="search-panel" aria-label="Busca de clima">
             <form class="input-group" onsubmit="event.preventDefault(); getWeather();">
@@ -43,8 +77,19 @@
                     onkeypress="handleKeyPress(event)"
                     autocomplete="off"
                     aria-required="true"
+                    list="city-suggestions"
                 >
-                <button type="submit" aria-label="Buscar clima">Buscar</button>
+                <datalist id="city-suggestions">
+                    <option value="São Paulo">
+                    <option value="Rio de Janeiro">
+                    <option value="Brasília">
+                    <option value="Salvador">
+                    <option value="Fortaleza">
+                </datalist>
+                <button type="submit" aria-label="Buscar clima">
+                    <span class="btn-icon">🔍</span>
+                    <span class="btn-text">Buscar</span>
+                </button>
                 <button 
                     type="button" 
                     onclick="startLocationTracking()" 
@@ -68,8 +113,11 @@
         </section>
 
         <div id="loading" class="loading" role="status" aria-live="polite" aria-hidden="true">
-            <span class="loading-spinner" aria-hidden="true"></span>
-            <span>Carregando dados meteorológicos...</span>
+            <div class="loading-content">
+                <span class="loading-spinner" aria-hidden="true"></span>
+                <span class="loading-text">Carregando dados meteorológicos...</span>
+                <span class="loading-progress" aria-hidden="true"></span>
+            </div>
         </div>
 
         <main id="main-content" class="dashboard-grid" role="main">
@@ -100,8 +148,120 @@
         </main>
         
         <footer class="app-footer">
-            <p>&copy; 2026 ClimaGo. Dados fornecidos por OpenWeatherMap.</p>
+            <div class="footer-content">
+                <p>&copy; 2026 ClimaGo. Dados fornecidos por OpenWeatherMap.</p>
+                <div class="footer-links">
+                    <a href="#" onclick="showAboutModal()">Sobre</a>
+                    <a href="#" onclick="showPrivacyModal()">Privacidade</a>
+                    <a href="https://github.com/pedrolucas167/ClimaGo" target="_blank" rel="noopener">GitHub</a>
+                </div>
+            </div>
         </footer>
+    </div>
+
+    <!-- Modals -->
+    <div id="export-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="export-modal-title">Exportar Dados</h2>
+                <button class="modal-close" onclick="closeModal('export-modal')" aria-label="Fechar">✕</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-description">Escolha o formato para exportar os dados climáticos atuais:</p>
+                <div class="export-options">
+                    <button class="export-option" onclick="exportData('pdf')">
+                        <span class="export-icon">📄</span>
+                        <span class="export-label">PDF</span>
+                    </button>
+                    <button class="export-option" onclick="exportData('csv')">
+                        <span class="export-icon">📊</span>
+                        <span class="export-label">CSV</span>
+                    </button>
+                    <button class="export-option" onclick="exportData('json')">
+                        <span class="export-icon">🔧</span>
+                        <span class="export-label">JSON</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="heatmap-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="heatmap-modal-title">
+        <div class="modal-content modal-content--large">
+            <div class="modal-header">
+                <h2 id="heatmap-modal-title">Mapa de Calor Climático</h2>
+                <button class="modal-close" onclick="closeModal('heatmap-modal')" aria-label="Fechar">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="heatmap-container" class="heatmap-container">
+                    <p class="heatmap-placeholder">Selecione uma cidade para visualizar o mapa de calor</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="settings-modal-title">Configurações</h2>
+                <button class="modal-close" onclick="closeModal('settings-modal')" aria-label="Fechar">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-group">
+                    <h3>Unidades</h3>
+                    <label class="setting-item">
+                        <input type="radio" name="units" value="metric" checked>
+                        <span>Métrico (°C, m/s)</span>
+                    </label>
+                    <label class="setting-item">
+                        <input type="radio" name="units" value="imperial">
+                        <span>Imperial (°F, mph)</span>
+                    </label>
+                </div>
+                <div class="settings-group">
+                    <h3>Idioma</h3>
+                    <select class="setting-select">
+                        <option value="pt">Português</option>
+                        <option value="en">English</option>
+                        <option value="es">Español</option>
+                    </select>
+                </div>
+                <div class="settings-group">
+                    <h3>Notificações</h3>
+                    <label class="setting-item">
+                        <input type="checkbox" id="notifications" onchange="toggleNotifications()">
+                        <span>Receber alertas de fenômenos extremos</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="about-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="about-modal-title">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="about-modal-title">Sobre ClimaGo</h2>
+                <button class="modal-close" onclick="closeModal('about-modal')" aria-label="Fechar">✕</button>
+            </div>
+            <div class="modal-body">
+                <p>ClimaGo é um dashboard climático avançado que fornece informações meteorológicas em tempo real, previsões, qualidade do ar e detecção de fenômenos extremos usando inteligência artificial.</p>
+                <p><strong>Versão:</strong> 2.0.0</p>
+                <p><strong>Desenvolvido por:</strong> Pedro Lucas</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="privacy-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="privacy-modal-title">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="privacy-modal-title">Política de Privacidade</h2>
+                <button class="modal-close" onclick="closeModal('privacy-modal')" aria-label="Fechar">✕</button>
+            </div>
+            <div class="modal-body">
+                <p>O ClimaGo coleta dados de localização apenas quando você autoriza. Esses dados são usados exclusivamente para fornecer informações meteorológicas precisas.</p>
+                <p>Não armazenamos seus dados pessoais em nossos servidores. O histórico de buscas é armazenado localmente no seu navegador.</p>
+            </div>
+        </div>
     </div>
 </body>
 </html>

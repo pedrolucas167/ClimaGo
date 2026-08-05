@@ -350,7 +350,10 @@ function displayForecast(data) {
                         <p class="forecast-date">${new Date(day.dt * 1000).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric' })}</p>
                         <img src="https://openweathermap.org/img/wn/${day.weather[0].icon}.png" 
                              alt="${day.weather[0].description}" 
-                             class="forecast-icon">
+                             class="forecast-icon"
+                             loading="lazy"
+                             width="50"
+                             height="50">
                         <p class="forecast-temp">${Math.round(day.main.temp)}°C</p>
                         <p class="forecast-desc">${day.weather[0].description}</p>
                     </div>
@@ -454,7 +457,10 @@ function displayWeather(data) {
                 </div>
                 <img src="https://openweathermap.org/img/wn/${weather[0].icon}@2x.png"
                      alt="${weather[0].description}"
-                     class="weather-icon">
+                     class="weather-icon"
+                     loading="lazy"
+                     width="100"
+                     height="100">
             </div>
         </div>
         <div class="weather-metrics">
@@ -747,7 +753,10 @@ function displayHourlyForecast(data) {
                         <p class="hourly-time">${new Date(hour.dt * 1000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
                         <img src="https://openweathermap.org/img/wn/${hour.weather[0].icon}.png"
                              alt="${hour.weather[0].description}"
-                             class="hourly-icon">
+                             class="hourly-icon"
+                             loading="lazy"
+                             width="40"
+                             height="40">
                         <p class="hourly-temp">${Math.round(hour.temp)}°C</p>
                         <p class="hourly-desc">${hour.weather[0].description}</p>
                         <p class="hourly-humidity">💧 ${hour.humidity}%</p>
@@ -862,4 +871,305 @@ function triggerDangerAlert(phenomena) {
 
 document.addEventListener('DOMContentLoaded', () => {
     renderRecentSearches();
+    initializeModals();
+    checkOfflineStatus();
 });
+
+// Modal Functions
+function initializeModals() {
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal(modal.id);
+            }
+        });
+    });
+}
+
+function showExportModal() {
+    if (!currentWeatherData) {
+        alert('Por favor, busque o clima de uma cidade primeiro.');
+        return;
+    }
+    document.getElementById('export-modal').classList.add('active');
+}
+
+function showHeatmapModal() {
+    if (!currentWeatherData) {
+        alert('Por favor, busque o clima de uma cidade primeiro.');
+        return;
+    }
+    document.getElementById('heatmap-modal').classList.add('active');
+    renderHeatmap();
+}
+
+function showSettingsModal() {
+    document.getElementById('settings-modal').classList.add('active');
+}
+
+function showAboutModal() {
+    document.getElementById('about-modal').classList.add('active');
+}
+
+function showPrivacyModal() {
+    document.getElementById('privacy-modal').classList.add('active');
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
+}
+
+// Export Functions
+function exportData(format) {
+    if (!currentWeatherData || !currentCity) {
+        alert('Por favor, busque o clima de uma cidade primeiro.');
+        closeModal('export-modal');
+        return;
+    }
+
+    const data = {
+        city: currentCity,
+        timestamp: new Date().toISOString(),
+        weather: currentWeatherData,
+        forecast: document.getElementById('forecast').style.display !== 'none' ? 'Available' : 'Not loaded'
+    };
+
+    switch(format) {
+        case 'pdf':
+            exportToPDF(data);
+            break;
+        case 'csv':
+            exportToCSV(data);
+            break;
+        case 'json':
+            exportToJSON(data);
+            break;
+    }
+    
+    closeModal('export-modal');
+}
+
+function exportToJSON(data) {
+    const jsonStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `clima-${data.city.replace(/\s+/g, '-')}-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function exportToCSV(data) {
+    const weather = data.weather;
+    const csvContent = [
+        ['Campo', 'Valor'],
+        ['Cidade', data.city],
+        ['Data/Hora', data.timestamp],
+        ['Temperatura', `${weather.main.temp}°C`],
+        ['Sensação Térmica', `${weather.main.feels_like}°C`],
+        ['Umidade', `${weather.main.humidity}%`],
+        ['Pressão', `${weather.main.pressure} hPa`],
+        ['Vento', `${weather.wind.speed} m/s`],
+        ['Condição', weather.weather[0].description],
+        ['Visibilidade', `${weather.visibility}m`]
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `clima-${data.city.replace(/\s+/g, '-')}-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function exportToPDF(data) {
+    // Simple HTML-based PDF export using window.print
+    const printWindow = window.open('', '_blank');
+    const weather = data.weather;
+    
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Relatório Climático - ${data.city}</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+                h1 { color: #7c3aed; border-bottom: 2px solid #7c3aed; padding-bottom: 10px; }
+                .header { margin-bottom: 30px; }
+                .data-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
+                .label { font-weight: bold; color: #555; }
+                .value { color: #333; }
+                .footer { margin-top: 40px; color: #888; font-size: 12px; text-align: center; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>🌤️ Relatório Climático</h1>
+                <p><strong>Cidade:</strong> ${data.city}</p>
+                <p><strong>Data:</strong> ${new Date(data.timestamp).toLocaleString('pt-BR')}</p>
+            </div>
+            <div class="data-row">
+                <span class="label">Temperatura:</span>
+                <span class="value">${weather.main.temp}°C</span>
+            </div>
+            <div class="data-row">
+                <span class="label">Sensação Térmica:</span>
+                <span class="value">${weather.main.feels_like}°C</span>
+            </div>
+            <div class="data-row">
+                <span class="label">Condição:</span>
+                <span class="value">${weather.weather[0].description}</span>
+            </div>
+            <div class="data-row">
+                <span class="label">Umidade:</span>
+                <span class="value">${weather.main.humidity}%</span>
+            </div>
+            <div class="data-row">
+                <span class="label">Pressão:</span>
+                <span class="value">${weather.main.pressure} hPa</span>
+            </div>
+            <div class="data-row">
+                <span class="label">Vento:</span>
+                <span class="value">${weather.wind.speed} m/s</span>
+            </div>
+            <div class="data-row">
+                <span class="label">Visibilidade:</span>
+                <span class="value">${weather.visibility}m</span>
+            </div>
+            <div class="footer">
+                <p>Gerado por ClimaGo - ${new Date().toLocaleString('pt-BR')}</p>
+            </div>
+        </body>
+        </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.print();
+}
+
+// Heatmap Function
+function renderHeatmap() {
+    const container = document.getElementById('heatmap-container');
+    if (!currentWeatherData) {
+        container.innerHTML = '<p class="heatmap-placeholder">Selecione uma cidade para visualizar o mapa de calor</p>';
+        return;
+    }
+
+    // Simple visual heatmap representation
+    const temp = currentWeatherData.main.temp;
+    const humidity = currentWeatherData.main.humidity;
+    
+    container.innerHTML = `
+        <div class="heatmap-visual">
+            <div class="heatmap-title">Mapa de Calor - ${currentCity}</div>
+            <div class="heatmap-grid">
+                <div class="heatmap-cell" style="background: ${getTempColor(temp)}">
+                    <span class="heatmap-label">Temperatura</span>
+                    <span class="heatmap-value">${temp}°C</span>
+                </div>
+                <div class="heatmap-cell" style="background: ${getHumidityColor(humidity)}">
+                    <span class="heatmap-label">Umidade</span>
+                    <span class="heatmap-value">${humidity}%</span>
+                </div>
+                <div class="heatmap-cell" style="background: ${getWindColor(currentWeatherData.wind.speed)}">
+                    <span class="heatmap-label">Vento</span>
+                    <span class="heatmap-value">${currentWeatherData.wind.speed} m/s</span>
+                </div>
+                <div class="heatmap-cell" style="background: ${getPressureColor(currentWeatherData.main.pressure)}">
+                    <span class="heatmap-label">Pressão</span>
+                    <span class="heatmap-value">${currentWeatherData.main.pressure} hPa</span>
+                </div>
+            </div>
+            <div class="heatmap-legend">
+                <span>Frio/Baixo</span>
+                <div class="legend-gradient"></div>
+                <span>Quente/Alto</span>
+            </div>
+        </div>
+    `;
+}
+
+function getTempColor(temp) {
+    // Color gradient from blue (cold) to red (hot)
+    if (temp < 10) return 'rgba(59, 130, 246, 0.8)';
+    if (temp < 20) return 'rgba(16, 185, 129, 0.8)';
+    if (temp < 30) return 'rgba(245, 158, 11, 0.8)';
+    return 'rgba(239, 68, 68, 0.8)';
+}
+
+function getHumidityColor(humidity) {
+    if (humidity < 30) return 'rgba(245, 158, 11, 0.8)';
+    if (humidity < 60) return 'rgba(16, 185, 129, 0.8)';
+    return 'rgba(59, 130, 246, 0.8)';
+}
+
+function getWindColor(speed) {
+    if (speed < 5) return 'rgba(16, 185, 129, 0.8)';
+    if (speed < 15) return 'rgba(245, 158, 11, 0.8)';
+    return 'rgba(239, 68, 68, 0.8)';
+}
+
+function getPressureColor(pressure) {
+    if (pressure < 1000) return 'rgba(239, 68, 68, 0.8)';
+    if (pressure < 1020) return 'rgba(16, 185, 129, 0.8)';
+    return 'rgba(59, 130, 246, 0.8)';
+}
+
+// Offline Mode
+let isOfflineMode = false;
+
+function toggleOfflineMode() {
+    isOfflineMode = !isOfflineMode;
+    const btn = event.target.closest('.quick-action-btn');
+    
+    if (isOfflineMode) {
+        btn.style.background = 'rgba(16, 185, 129, 0.2)';
+        btn.style.borderColor = 'rgba(16, 185, 129, 0.5)';
+        btn.querySelector('span:first-child').textContent = '📴';
+        alert('Modo offline ativado. Dados serão carregados do cache quando disponível.');
+    } else {
+        btn.style.background = '';
+        btn.style.borderColor = '';
+        btn.querySelector('span:first-child').textContent = '📴';
+        alert('Modo offline desativado. Dados serão atualizados em tempo real.');
+    }
+}
+
+function checkOfflineStatus() {
+    window.addEventListener('online', () => {
+        console.log('Conexão restaurada');
+        if (isOfflineMode) {
+            toggleOfflineMode();
+        }
+    });
+    
+    window.addEventListener('offline', () => {
+        console.log('Conexão perdida');
+        if (!isOfflineMode) {
+            toggleOfflineMode();
+        }
+    });
+}
+
+// Settings Functions
+function toggleNotifications() {
+    const checkbox = document.getElementById('notifications');
+    
+    if (checkbox.checked) {
+        if ('Notification' in window) {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    alert('Notificações ativadas!');
+                } else {
+                    checkbox.checked = false;
+                    alert('Permissão de notificação negada.');
+                }
+            });
+        } else {
+            checkbox.checked = false;
+            alert('Seu navegador não suporta notificações.');
+        }
+    }
+}
