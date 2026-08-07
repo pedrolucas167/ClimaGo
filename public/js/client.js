@@ -5,6 +5,78 @@ let currentCity = null;
 let currentWeatherData = null;
 const UPDATE_INTERVAL = 5 * 60 * 1000;
 
+// Variáveis para gerenciamento de instalação PWA
+let deferredPrompt;
+let isInstalled = false;
+
+// Detectar se o app já está instalado
+window.addEventListener('load', () => {
+    // Verificar se o app está em modo standalone (já instalado)
+    if (window.navigator.standalone === true) {
+        isInstalled = true;
+    }
+    
+    // Para Android, verificar se foi instalado via Web App Install
+    const hideInstallBtn = localStorage.getItem('climago-app-installed');
+    if (hideInstallBtn === 'true' || isInstalled) {
+        const installBtn = document.getElementById('install-btn');
+        if (installBtn) {
+            installBtn.style.display = 'none';
+        }
+    }
+});
+
+// Capturar o evento beforeinstallprompt
+window.addEventListener('beforeinstallprompt', (event) => {
+    // Prevenir o prompt automático do navegador
+    event.preventDefault();
+    deferredPrompt = event;
+    
+    // Mostrar nosso botão de instalação customizado
+    const installBtn = document.getElementById('install-btn');
+    if (installBtn && !isInstalled) {
+        installBtn.style.display = 'flex';
+    }
+});
+
+// Função para instalar o app
+function installApp() {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        
+        deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                console.log('Usuário aceitou a instalação do app');
+                isInstalled = true;
+                localStorage.setItem('climago-app-installed', 'true');
+                
+                // Ocultar o botão de instalação
+                const installBtn = document.getElementById('install-btn');
+                if (installBtn) {
+                    installBtn.style.display = 'none';
+                }
+            } else {
+                console.log('Usuário recusou a instalação do app');
+            }
+            deferredPrompt = null;
+        });
+    } else {
+        alert('Este navegador não suporta a instalação de aplicativos web. Use um navegador moderno como Chrome, Edge ou Firefox no Android.');
+    }
+}
+
+// Ocultar o botão quando o app é instalado
+window.addEventListener('appinstalled', () => {
+    console.log('App instalado com sucesso!');
+    isInstalled = true;
+    localStorage.setItem('climago-app-installed', 'true');
+    
+    const installBtn = document.getElementById('install-btn');
+    if (installBtn) {
+        installBtn.style.display = 'none';
+    }
+});
+
 function loadRecentSearches() {
     const searches = localStorage.getItem('recentSearches');
     return searches ? JSON.parse(searches) : [];
@@ -22,15 +94,26 @@ function saveRecentSearch(city) {
 function renderRecentSearches() {
     const container = document.getElementById('recentSearchesList');
     const searches = loadRecentSearches();
-    
+
+    if (!container) {
+        return;
+    }
+
     if (searches.length === 0) {
         container.innerHTML = '<p class="no-searches">Nenhuma busca recente</p>';
         return;
     }
     
-    container.innerHTML = searches.map(city => 
-        `<button class="recent-search-btn" onclick="searchCity('${city}')">${city}</button>`
-    ).join('');
+    container.innerHTML = '';
+    searches.forEach(city => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'recent-search-btn';
+        button.textContent = city;
+        button.setAttribute('aria-label', `Buscar clima para ${city}`);
+        button.addEventListener('click', () => searchCity(city));
+        container.appendChild(button);
+    });
 }
 
 function searchCity(city) {
@@ -171,18 +254,19 @@ function updateLocationTrackingUI(isTracking) {
     const locationStatus = document.getElementById('location-status');
     
     if (geoBtn) {
+        geoBtn.classList.toggle('is-tracking', isTracking);
+        geoBtn.setAttribute('aria-pressed', String(isTracking));
+
         if (isTracking) {
             geoBtn.innerHTML = '🛑';
             geoBtn.title = 'Parar rastreamento de localização';
             geoBtn.setAttribute('aria-label', 'Parar rastreamento de localização');
-            geoBtn.style.background = 'rgba(239, 68, 68, 0.2)';
-            geoBtn.style.borderColor = 'rgba(239, 68, 68, 0.5)';
+            geoBtn.setAttribute('data-tooltip', 'Parar rastreamento de localização');
         } else {
             geoBtn.innerHTML = '📍';
             geoBtn.title = 'Iniciar rastreamento de localização';
             geoBtn.setAttribute('aria-label', 'Iniciar rastreamento de localização');
-            geoBtn.style.background = 'rgba(255, 255, 255, 0.1)';
-            geoBtn.style.borderColor = 'var(--border-color)';
+            geoBtn.setAttribute('data-tooltip', 'Iniciar rastreamento de localização');
         }
     }
     
@@ -213,12 +297,17 @@ async function getWeatherByCoords(lat, lon) {
         saveRecentSearch(data.name);
 
         const forecastData = await getForecast(data.name);
-        
-        await Promise.all([
+
+        const results = await Promise.all([
             getAirQuality(lat, lon),
             getUVIndex(lat, lon),
             getHourlyForecast(lat, lon)
         ]);
+        const airQualityData = results[0];
+        const uvData = results[1];
+
+        // Evaluate tennis conditions
+        evaluateTennisConditions(data, uvData, airQualityData);
 
     } catch (error) {
         console.error('Erro ao obter clima:', error);
@@ -264,9 +353,11 @@ async function getAirQuality(lat, lon) {
 
         const data = await response.json();
         displayAirQuality(data);
+        return data;
 
     } catch (error) {
         console.error('Erro ao obter qualidade do ar:', error);
+        return null;
     }
 }
 
@@ -282,9 +373,11 @@ async function getUVIndex(lat, lon) {
 
         const data = await response.json();
         displayUVIndex(data);
+        return data;
 
     } catch (error) {
         console.error('Erro ao obter índice UV:', error);
+        return null;
     }
 }
 
@@ -387,6 +480,7 @@ async function getWeather(isAutoUpdate = false) {
         document.getElementById('uv-index').style.display = 'none';
         document.getElementById('hourly-forecast').style.display = 'none';
         document.getElementById('extreme-phenomena').style.display = 'none';
+        document.getElementById('tennis-conditions').style.display = 'none';
     }
 
     try {
@@ -407,13 +501,21 @@ async function getWeather(isAutoUpdate = false) {
             saveRecentSearch(city);
             const forecastData = await getForecast(city);
 
+            let airQualityData = null;
+            let uvData = null;
+
             if (data.coord) {
-                await Promise.all([
+                const results = await Promise.all([
                     getAirQuality(data.coord.lat, data.coord.lon),
                     getUVIndex(data.coord.lat, data.coord.lon),
                     getHourlyForecast(data.coord.lat, data.coord.lon)
                 ]);
+                airQualityData = results[0];
+                uvData = results[1];
             }
+
+            // Evaluate tennis conditions
+            evaluateTennisConditions(data, uvData, airQualityData);
 
             const checkbox = document.getElementById('autoUpdate');
             if (checkbox.checked) {
@@ -792,7 +894,7 @@ function displayExtremePhenomena(data) {
     };
 
     // Check for high danger phenomena and trigger alerts
-    const highDangerPhenomena = data.phenomena.filter(p => 
+    const highDangerPhenomena = data.phenomena.filter(p =>
         p.dangerLevel === 'ALTO' || p.dangerLevel === 'EXTREMO'
     );
 
@@ -826,6 +928,206 @@ function displayExtremePhenomena(data) {
 
     phenomenaElement.innerHTML = htmlContent;
     phenomenaElement.style.display = 'block';
+}
+
+function evaluateTennisConditions(weatherData, uvData, airQualityData) {
+    const tennisElement = document.getElementById('tennis-conditions');
+
+    if (!weatherData || !weatherData.main) {
+        return;
+    }
+
+    const temp = weatherData.main.temp;
+    const feelsLike = weatherData.main.feels_like;
+    const humidity = weatherData.main.humidity;
+    const windSpeed = weatherData.wind ? weatherData.wind.speed : 0;
+    const weatherCondition = weatherData.weather[0].main.toLowerCase();
+    const weatherDescription = weatherData.weather[0].description.toLowerCase();
+
+    // UV data
+    const uvIndex = uvData && uvData.value ? uvData.value : 0;
+
+    // Air quality data
+    const aqi = airQualityData && airQualityData.list && airQualityData.list.length > 0
+        ? airQualityData.list[0].main.aqi : 1;
+
+    // Evaluate conditions
+    let score = 100;
+    let factors = [];
+    let recommendations = [];
+
+    // Temperature evaluation (ideal: 15-28°C)
+    if (temp < 10) {
+        score -= 30;
+        factors.push({ name: 'Temperatura baixa', status: 'ruim', impact: -30 });
+        recommendations.push('Use roupas térmicas e aqueça-se bem antes de jogar');
+    } else if (temp >= 10 && temp < 15) {
+        score -= 15;
+        factors.push({ name: 'Temperatura fresca', status: 'regular', impact: -15 });
+        recommendations.push('Use roupas leves mas quentes, faça aquecimento prolongado');
+    } else if (temp >= 15 && temp <= 28) {
+        factors.push({ name: 'Temperatura ideal', status: 'ótimo', impact: 0 });
+    } else if (temp > 28 && temp <= 32) {
+        score -= 10;
+        factors.push({ name: 'Temperatura alta', status: 'regular', impact: -10 });
+        recommendations.push('Mantenha-se hidratado, faça pausas frequentes, evite horários de pico');
+    } else {
+        score -= 35;
+        factors.push({ name: 'Temperatura muito alta', status: 'ruim', impact: -35 });
+        recommendations.push('Evite jogar nestas condições, risco de insolação e exaustão');
+    }
+
+    // Humidity evaluation (ideal: 40-60%)
+    if (humidity < 30) {
+        score -= 10;
+        factors.push({ name: 'Umidade baixa', status: 'regular', impact: -10 });
+        recommendations.push('Hidrate-se mais, use protetor labial');
+    } else if (humidity >= 30 && humidity <= 60) {
+        factors.push({ name: 'Umidade ideal', status: 'ótimo', impact: 0 });
+    } else if (humidity > 60 && humidity <= 80) {
+        score -= 15;
+        factors.push({ name: 'Umidade alta', status: 'regular', impact: -15 });
+        recommendations.push('Use roupas leves e respiráveis, mantenha-se hidratado');
+    } else {
+        score -= 25;
+        factors.push({ name: 'Umidade muito alta', status: 'ruim', impact: -25 });
+        recommendations.push('Evite jogar, desconforto excessivo e risco de desidratação');
+    }
+
+    // Wind evaluation (ideal: 0-15 km/h)
+    const windKmh = windSpeed * 3.6;
+    if (windKmh < 15) {
+        factors.push({ name: 'Vento calmo', status: 'ótimo', impact: 0 });
+    } else if (windKmh >= 15 && windKmh < 25) {
+        score -= 10;
+        factors.push({ name: 'Vento moderado', status: 'regular', impact: -10 });
+        recommendations.push('Ajuste sua técnica para compensar o vento');
+    } else if (windKmh >= 25 && windKmh < 35) {
+        score -= 25;
+        factors.push({ name: 'Vento forte', status: 'ruim', impact: -25 });
+        recommendations.push('Vento forte afeta a bola, considere remarcar');
+    } else {
+        score -= 40;
+        factors.push({ name: 'Vento muito forte', status: 'ruim', impact: -40 });
+        recommendations.push('Não recomendado jogar com vento desta intensidade');
+    }
+
+    // Weather condition evaluation
+    if (weatherCondition.includes('rain') || weatherDescription.includes('chuva')) {
+        score -= 50;
+        factors.push({ name: 'Chuva', status: 'ruim', impact: -50 });
+        recommendations.push('Não jogue na chuva - risco de escorregões e danos à quadra');
+    } else if (weatherCondition.includes('storm') || weatherDescription.includes('tempestade')) {
+        score -= 100;
+        factors.push({ name: 'Tempestade', status: 'perigoso', impact: -100 });
+        recommendations.push('PERIGO: Não jogue em tempestade - risco de raios');
+    } else if (weatherCondition.includes('snow') || weatherDescription.includes('neve')) {
+        score -= 60;
+        factors.push({ name: 'Neve', status: 'ruim', impact: -60 });
+        recommendations.push('Condições impróprias para tênis');
+    } else if (weatherCondition.includes('clear') || weatherCondition.includes('sun')) {
+        factors.push({ name: 'Céu limpo', status: 'ótimo', impact: 0 });
+    } else if (weatherCondition.includes('cloud')) {
+        factors.push({ name: 'Nublado', status: 'bom', impact: 0 });
+    }
+
+    // UV evaluation
+    if (uvIndex > 0 && uvIndex <= 2) {
+        factors.push({ name: 'UV baixo', status: 'ótimo', impact: 0 });
+    } else if (uvIndex > 2 && uvIndex <= 5) {
+        factors.push({ name: 'UV moderado', status: 'bom', impact: 0 });
+        recommendations.push('Use protetor solar FPS 30+');
+    } else if (uvIndex > 5 && uvIndex <= 7) {
+        score -= 10;
+        factors.push({ name: 'UV alto', status: 'regular', impact: -10 });
+        recommendations.push('Use protetor solar FPS 50+, chapéu e óculos');
+    } else if (uvIndex > 7 && uvIndex <= 10) {
+        score -= 20;
+        factors.push({ name: 'UV muito alto', status: 'ruim', impact: -20 });
+        recommendations.push('Proteção máxima necessária, evite horários de pico (10h-16h)');
+    } else if (uvIndex > 10) {
+        score -= 30;
+        factors.push({ name: 'UV extremo', status: 'ruim', impact: -30 });
+        recommendations.push('Evite exposição solar, proteção essencial');
+    }
+
+    // Air quality evaluation
+    if (aqi === 1) {
+        factors.push({ name: 'Qualidade do ar excelente', status: 'ótimo', impact: 0 });
+    } else if (aqi === 2) {
+        factors.push({ name: 'Qualidade do ar boa', status: 'bom', impact: 0 });
+    } else if (aqi === 3) {
+        score -= 10;
+        factors.push({ name: 'Qualidade do ar moderada', status: 'regular', impact: -10 });
+        recommendations.push('Pessoas sensíveis devem reduzir esforço intenso');
+    } else if (aqi === 4) {
+        score -= 25;
+        factors.push({ name: 'Qualidade do ar ruim', status: 'ruim', impact: -25 });
+        recommendations.push('Evite exercícios intensos ao ar livre');
+    } else if (aqi === 5) {
+        score -= 40;
+        factors.push({ name: 'Qualidade do ar muito ruim', status: 'ruim', impact: -40 });
+        recommendations.push('Não recomendado atividades ao ar livre');
+    }
+
+    // Determine overall rating
+    let rating, ratingColor, ratingIcon;
+    if (score >= 80) {
+        rating = 'Excelente';
+        ratingColor = '#10b981';
+        ratingIcon = '🎾';
+    } else if (score >= 60) {
+        rating = 'Bom';
+        ratingColor = '#4fd1c5';
+        ratingIcon = '👍';
+    } else if (score >= 40) {
+        rating = 'Regular';
+        ratingColor = '#f6e05e';
+        ratingIcon = '⚠️';
+    } else if (score >= 20) {
+        rating = 'Ruim';
+        ratingColor = '#ed8936';
+        ratingIcon = '👎';
+    } else {
+        rating = 'Não recomendado';
+        ratingColor = '#ef4444';
+        ratingIcon = '🚫';
+    }
+
+    const htmlContent = `
+        <div class="tennis-container">
+            <h3>🎾 Condições para Tênis</h3>
+            <div class="tennis-rating">
+                <div class="tennis-badge" style="background-color: ${ratingColor}">
+                    <span class="tennis-icon">${ratingIcon}</span>
+                    <span class="tennis-rating-text">${rating}</span>
+                </div>
+                <p class="tennis-score">Pontuação: ${Math.max(0, score)}/100</p>
+            </div>
+            <div class="tennis-factors">
+                <p class="factors-title">Fatores avaliados:</p>
+                <div class="factors-grid">
+                    ${factors.map(factor => `
+                        <div class="factor-item factor-item--${factor.status}">
+                            <span class="factor-name">${factor.name}</span>
+                            <span class="factor-status">${factor.status}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            ${recommendations.length > 0 ? `
+                <div class="tennis-recommendations">
+                    <p class="recommendations-title">💡 Recomendações:</p>
+                    <ul class="recommendations-list">
+                        ${recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+        </div>
+    `;
+
+    tennisElement.innerHTML = htmlContent;
+    tennisElement.style.display = 'block';
 }
 
 function triggerDangerAlert(phenomena) {

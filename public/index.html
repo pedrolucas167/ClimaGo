@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ClimaGo - Clima em Tempo Real</title>
     <meta name="description" content="Dashboard climático com clima em tempo real, previsão, qualidade do ar, índice UV e detecção de fenômenos atmosféricos extremos.">
-    <meta name="theme-color" content="#15162a">
+    <meta name="color-scheme" content="dark light">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#7c3aed">
     <link rel="stylesheet" href="css/styles.css">
-    <script src="js/client.js"></script>
+    <script src="js/client.js" defer></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -36,7 +36,7 @@
             <div class="hero-copy">
                 <p class="eyebrow">Dashboard climático</p>
                 <h1>ClimaGo</h1>
-                <p class="hero-description">Clima em tempo real, previsão, qualidade do ar, índice UV e detecção de fenômenos extremos.</p>
+                <p class="hero-description">Clima em tempo real, previsão, qualidade do ar, índice UV, detecção de fenômenos extremos e condições para tênis.</p>
             </div>
             <div class="hero-badges" role="list" aria-label="Funcionalidades disponíveis">
                 <span class="hero-badge" role="listitem">🌡️ Tempo real</span>
@@ -44,23 +44,28 @@
                 <span class="hero-badge" role="listitem">🌬️ Qualidade do ar</span>
                 <span class="hero-badge" role="listitem">☀️ Índice UV</span>
                 <span class="hero-badge" role="listitem">🌍 Fenômenos extremos</span>
+                <span class="hero-badge" role="listitem">🎾 Condições tênis</span>
             </div>
         </header>
 
         <nav class="quick-actions" role="navigation" aria-label="Ações rápidas">
-            <button class="quick-action-btn" onclick="showExportModal()" title="Exportar dados">
+            <button type="button" class="quick-action-btn" id="install-btn" onclick="installApp()" title="Instalar app" style="display: none;">
+                <span>📲</span>
+                <span>Instalar</span>
+            </button>
+            <button type="button" class="quick-action-btn" onclick="showExportModal()" title="Exportar dados">
                 <span>📊</span>
                 <span>Exportar</span>
             </button>
-            <button class="quick-action-btn" onclick="showHeatmapModal()" title="Mapa de calor">
+            <button type="button" class="quick-action-btn" onclick="showHeatmapModal()" title="Mapa de calor">
                 <span>🗺️</span>
                 <span>Mapa</span>
             </button>
-            <button class="quick-action-btn" onclick="toggleOfflineMode()" title="Modo offline">
+            <button type="button" class="quick-action-btn" onclick="toggleOfflineMode()" title="Modo offline">
                 <span>📴</span>
                 <span>Offline</span>
             </button>
-            <button class="quick-action-btn" onclick="showSettingsModal()" title="Configurações">
+            <button type="button" class="quick-action-btn" onclick="showSettingsModal()" title="Configurações">
                 <span>⚙️</span>
                 <span>Config</span>
             </button>
@@ -96,6 +101,7 @@
                     class="geo-btn" 
                     aria-label="Iniciar rastreamento de localização"
                     title="Iniciar rastreamento de localização"
+                    data-tooltip="Iniciar rastreamento de localização"
                 >📍</button>
             </form>
 
@@ -135,6 +141,8 @@
 
             <section class="dashboard-card dashboard-card--wide" id="extreme-phenomena" style="display: none;" aria-labelledby="phenomena-heading" role="region"></section>
 
+            <section class="dashboard-card" id="tennis-conditions" style="display: none;" aria-labelledby="tennis-heading" role="region"></section>
+
             <section class="dashboard-card dashboard-card--wide recent-searches" aria-labelledby="history-heading">
                 <div class="panel-heading">
                     <div>
@@ -151,8 +159,8 @@
             <div class="footer-content">
                 <p>&copy; 2026 ClimaGo. Dados fornecidos por OpenWeatherMap.</p>
                 <div class="footer-links">
-                    <a href="#" onclick="showAboutModal()">Sobre</a>
-                    <a href="#" onclick="showPrivacyModal()">Privacidade</a>
+                    <a href="#" onclick="showAboutModal(); return false;">Sobre</a>
+                    <a href="#" onclick="showPrivacyModal(); return false;">Privacidade</a>
                     <a href="https://github.com/pedrolucas167/ClimaGo" target="_blank" rel="noopener">GitHub</a>
                 </div>
             </div>
@@ -220,7 +228,8 @@
                 </div>
                 <div class="settings-group">
                     <h3>Idioma</h3>
-                    <select class="setting-select">
+                    <label for="language-setting" class="visually-hidden">Selecionar idioma</label>
+                    <select id="language-setting" class="setting-select" aria-label="Selecionar idioma">
                         <option value="pt">Português</option>
                         <option value="en">English</option>
                         <option value="es">Español</option>
