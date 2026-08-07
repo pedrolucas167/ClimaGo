@@ -297,6 +297,11 @@ async function getWeatherByCoords(lat, lon) {
         saveRecentSearch(data.name);
 
         const forecastData = await getForecast(data.name);
+        
+        // Display next day forecast
+        if (forecastData) {
+            displayNextDayForecast(forecastData);
+        }
 
         const results = await Promise.all([
             getAirQuality(lat, lon),
@@ -459,6 +464,94 @@ function displayForecast(data) {
     forecastElement.style.display = 'block';
 }
 
+function displayNextDayForecast(data) {
+    const nextDayElement = document.getElementById('next-day-forecast');
+    
+    // Get the first forecast item for tomorrow (around 12:00)
+    const tomorrowForecast = data.list.find(item => {
+        const date = new Date(item.dt * 1000);
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return date.getDate() === tomorrow.getDate() && 
+               date.getMonth() === tomorrow.getMonth() && 
+               date.getFullYear() === tomorrow.getFullYear() &&
+               item.dt_txt.includes('12:00:00');
+    });
+    
+    if (!tomorrowForecast) {
+        // Fallback to first forecast item if 12:00 not found
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const fallbackForecast = data.list.find(item => {
+            const date = new Date(item.dt * 1000);
+            return date.getDate() === tomorrow.getDate() && 
+                   date.getMonth() === tomorrow.getMonth() && 
+                   date.getFullYear() === tomorrow.getFullYear();
+        });
+        
+        if (!fallbackForecast) {
+            return;
+        }
+        
+        displayNextDayData(fallbackForecast);
+        return;
+    }
+    
+    displayNextDayData(tomorrowForecast);
+}
+
+function displayNextDayData(forecastData) {
+    const nextDayElement = document.getElementById('next-day-forecast');
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const htmlContent = `
+        <div class="next-day-container">
+            <div class="panel-heading">
+                <div>
+                    <p class="panel-kicker">Amanhã</p>
+                    <h3 id="next-day-heading">${tomorrow.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
+                </div>
+            </div>
+            <div class="next-day-content">
+                <div class="next-day-main">
+                    <img src="https://openweathermap.org/img/wn/${forecastData.weather[0].icon}@2x.png"
+                         alt="${forecastData.weather[0].description}"
+                         class="next-day-icon"
+                         loading="lazy"
+                         width="80"
+                         height="80">
+                    <div class="next-day-temp">
+                        <span class="next-day-temp-value">${Math.round(forecastData.main.temp)}°C</span>
+                        <p class="next-day-desc">${forecastData.weather[0].description}</p>
+                    </div>
+                </div>
+                <div class="next-day-details">
+                    <div class="next-day-detail">
+                        <span class="detail-label">Sensação</span>
+                        <span class="detail-value">${Math.round(forecastData.main.feels_like)}°C</span>
+                    </div>
+                    <div class="next-day-detail">
+                        <span class="detail-label">Umidade</span>
+                        <span class="detail-value">${forecastData.main.humidity}%</span>
+                    </div>
+                    <div class="next-day-detail">
+                        <span class="detail-label">Vento</span>
+                        <span class="detail-value">${forecastData.wind.speed} m/s</span>
+                    </div>
+                    <div class="next-day-detail">
+                        <span class="detail-label">Min/Max</span>
+                        <span class="detail-value">${Math.round(forecastData.main.temp_min)}° / ${Math.round(forecastData.main.temp_max)}°</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    nextDayElement.innerHTML = htmlContent;
+    nextDayElement.style.display = 'block';
+}
+
 async function getWeather(isAutoUpdate = false) {
     const cityInput = document.getElementById('city');
     const loadingElement = document.getElementById('loading');
@@ -476,6 +569,7 @@ async function getWeather(isAutoUpdate = false) {
     if (!isAutoUpdate) {
         weatherElement.innerHTML = '';
         forecastElement.style.display = 'none';
+        document.getElementById('next-day-forecast').style.display = 'none';
         document.getElementById('air-quality').style.display = 'none';
         document.getElementById('uv-index').style.display = 'none';
         document.getElementById('hourly-forecast').style.display = 'none';
@@ -500,6 +594,11 @@ async function getWeather(isAutoUpdate = false) {
         if (!isAutoUpdate) {
             saveRecentSearch(city);
             const forecastData = await getForecast(city);
+            
+            // Display next day forecast
+            if (forecastData) {
+                displayNextDayForecast(forecastData);
+            }
 
             let airQualityData = null;
             let uvData = null;
